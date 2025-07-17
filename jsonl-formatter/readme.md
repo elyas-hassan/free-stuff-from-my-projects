@@ -13,11 +13,13 @@ This script converts a folder of `.txt` files into a `.jsonl` file, where each l
   { "text": "Content of the text file..." }
 
 
-📦 Requirements
+## 📦 Requirements
+
 Just Python 3 — no external packages required.
 
 
-📁 Usage
+## 📁 Usage
+
 1- Edit the script and set your desired paths:
 
 SOURCE_DIR = "your_folder_with_txt_files"
