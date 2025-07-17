@@ -49,13 +49,13 @@ You’ll get an output file:
 final_training_dataset.jsonl
 
 
-##📦 Requirements
+## 📦 Requirements
 Python 3.x
 
 No external dependencies
 
 
-📜 License
+### 📜 License
 This script is part of the free-stuff-from-my-projects repository and is licensed under the Creative Commons BY-NC 4.0 License.
 
 ✅ Free to use and modify for non-commercial purposes
