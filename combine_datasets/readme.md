@@ -44,8 +44,8 @@ SOURCE_FILES = [
 python merge_finetune_data.py
 You’ll get an output file:
 
-نسخ
-تحرير
+
+
 final_training_dataset.jsonl
 
 
