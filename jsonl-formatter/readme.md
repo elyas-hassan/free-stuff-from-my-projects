@@ -33,4 +33,10 @@ python format_finetune_data.py
 
 ## 📜 License
 
-This script is part of the [free-stuff-from-my-projects](../..) repo and is covered under the [CC BY-NC 4.0 License](../../LICENSE).
+This script is part of the [free-stuff-from-my-projects](https://github.com/elyas-hassan/free-stuff-from-my-projects) repository and is covered under the [CC BY-NC 4.0 License](https://github.com/elyas-hassan/free-stuff-from-my-projects/blob/main/LICENSE).
+
+You are free to use, modify, and share this for **non-commercial purposes**.
+
+Attribution is appreciated but not required.  
+🚫 Please do **not** use this in paid or commercial products.
+
