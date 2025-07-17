@@ -31,3 +31,6 @@ python format_finetune_data.py
 
 3- After running, you’ll find the output in the same directory or wherever you set OUTPUT_FILE.
 
+## 📜 License
+
+This script is part of the [free-stuff-from-my-projects](../..) repo and is covered under the [CC BY-NC 4.0 License](../../LICENSE).
