@@ -38,9 +38,7 @@ It adds a custom menu to your Google Sheet for easy access.
 A new menu will appear:
 📸 Image Tools > Auto Get & Display Images
 
-yaml
-نسخ
-تحرير
+
 
 ---
 
@@ -55,14 +53,13 @@ const IMAGE_DISPLAY_COLUMN = 2; // Column B (2) — where image formulas go
 To skip headers (like a title row), change this:
 
 javascript
-نسخ
-تحرير
+
 for (let i = 1; i <= lastRow; i++) {
 ⬇️ to:
 
 javascript
-نسخ
-تحرير
+
+
 for (let i = 2; i <= lastRow; i++) {
 This will start from row 2 instead of row 1.
 
@@ -70,8 +67,8 @@ This will start from row 2 instead of row 1.
 You can change the image size with this line:
 
 javascript
-نسخ
-تحرير
+
+
 const imageFormula = '=IMAGE("' + imageUrl + '", 4, 100, 100)';
 Mode 4 allows you to manually set width/height.
 
