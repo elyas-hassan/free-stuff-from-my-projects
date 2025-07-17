@@ -38,6 +38,7 @@ SOURCE_FILES = [
     "training_data2.jsonl"
 ]
 
+```
 2. Run the script:
 
 python merge_finetune_data.py
