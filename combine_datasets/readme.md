@@ -39,7 +39,7 @@ SOURCE_FILES = [
 ]
 
 ```
-2. Run the script:
+### 2. Run the script:
 
 python merge_finetune_data.py
 You’ll get an output file:
