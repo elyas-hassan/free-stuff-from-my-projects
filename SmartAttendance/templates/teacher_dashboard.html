@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <link rel="stylesheet" href="/static/site.css">
+    <script src="/static/qrcode.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Attendance Office</h1>
+        <nav>
+            <a class="button" href="/">Student Page</a>
+            <form method="post" action="/teacher/logout">
+                <button type="submit">Sign Out</button>
+            </form>
+        </nav>
+    </header>
+
+   <main class="wide">
+
+    <!-- 1. the main thing teachers do -->
+    <section class="panel">
+        <h2>1. Take attendance</h2>
+        <div class="toolbar">
+            <select id="classSelect" aria-label="Class">
+                <option value="">Pick a class...</option>
+                {% for class in classes %}
+                <option value="{{ class.id }}">{{ class.name }} (Class {{ class.id }})</option>
+                {% endfor %}
+            </select>
+            <button id="startBtn">Start Session</button>
+            <button class="danger" id="stopBtn" disabled>Stop Session</button>
+            <a class="button secondary" href="/export/csv">Export CSV</a>
+        </div>
+
+        <div class="session-panel hidden" id="sessionInfo">
+            <p class="hint">Tell students to enter this code:</p>
+            <div class="session-code" id="sessionCode">------</div>
+            <div>Class number: <strong id="activeClassId">-</strong></div>
+            <div class="qr-grid">
+                <div>
+                    <p class="hint">Class QR - fills the class automatically</p>
+                    <div class="qr-box" id="classQr"></div>
+                </div>
+                <div>
+                    <p class="hint">Session QR - includes the attendance code</p>
+                    <div class="qr-box" id="sessionQr"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="panel stat-card"><h2>Present</h2><p id="present-count">0</p></div>
+        <div class="panel stat-card"><h2>Absent</h2><p id="absent-count">0</p></div>
+        <div class="panel stat-card"><h2>Total</h2><p id="total-count">0</p></div>
+    </section>
+
+    <section class="panel roster">
+        <h2>Class list</h2>
+        <p class="hint">Tap a student to mark them present by hand.</p>
+        <ul id="student-roster"><li>Pick a class and start a session.</li></ul>
+    </section>
+
+    <!-- 2. admin stuff, hidden until opened -->
+    <h2 class="section-title">Manage</h2>
+
+    <details class="panel fold">
+        <summary>Add a class</summary>
+        <form id="classForm" class="form-row">
+            <input id="className" name="name" placeholder="Class name, for example Physics 101" required>
+            <button type="submit">Add Class</button>
+        </form>
+        <p class="notice" id="classNotice"></p>
+        <div class="class-qr-preview hidden" id="classQrPreview">
+            <strong id="classQrTitle"></strong>
+            <div class="qr-box" id="newClassQr"></div>
+        </div>
+    </details>
+
+    <details class="panel fold">
+        <summary>Add one student</summary>
+        <form id="studentForm" class="form-row">
+            <input name="student_id" placeholder="Student ID" required>
+            <input name="name" placeholder="Student name" required>
+            <div>
+                <span class="field-label">Enroll in courses</span>
+                <div class="course-checks" id="singleCourseChecks">
+                    {% for class in classes %}
+                    <label><input type="checkbox" name="single_class_ids" value="{{ class.id }}"> {{ class.name }}</label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit">Add or Update Student</button>
+        </form>
+        <p class="notice" id="studentNotice"></p>
+    </details>
+
+    <details class="panel fold">
+        <summary>Add many students at once</summary>
+        <form id="bulkForm" class="form-row">
+            <textarea id="bulkLines" placeholder="One student per line&#10;S1001, Sarah Ahmed&#10;S1002, Omar Hassan"></textarea>
+            <div>
+                <span class="field-label">Enroll all lines in these courses</span>
+                <div class="course-checks">
+                    {% for class in classes %}
+                    <label><input type="checkbox" name="bulk_class_ids" value="{{ class.id }}"> {{ class.name }}</label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit">Add Multiple Students</button>
+        </form>
+        <p class="notice" id="bulkNotice"></p>
+    </details>
+
+    <details class="panel fold roster">
+        <summary>All registered students ({{ students|length }})</summary>
+        <table>
+            <thead><tr><th>Student ID</th><th>Name</th><th>Courses</th></tr></thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.id }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>{% for course in student.courses %}{{ course.name }}{% if not loop.last %}, {% endif %}{% else %}None{% endfor %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3">No students registered.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+
+</main>
+
+    <script>
+        const startBtn = document.getElementById("startBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const classSelect = document.getElementById("classSelect");
+        const sessionInfo = document.getElementById("sessionInfo");
+        const sessionCode = document.getElementById("sessionCode");
+        const activeClassId = document.getElementById("activeClassId");
+        const rosterList = document.getElementById("student-roster");
+        let refreshTimer;
+
+        function drawQr(containerId, value) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+            new QRCode(container, {
+                text: value,
+                width: 200,
+                height: 200,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        classSelect.addEventListener("change", () => {
+            if (classSelect.value) drawQr("classQr", `CLASS:${classSelect.value}`);
+        });
+
+        startBtn.addEventListener("click", async () => {
+            if (!classSelect.value) return;
+            const response = await fetch("/api/start_session", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({class_id: classSelect.value})
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            sessionCode.textContent = data.code;
+            activeClassId.textContent = classSelect.value;
+            sessionInfo.classList.remove("hidden");
+            drawQr("classQr", `CLASS:${classSelect.value}`);
+            drawQr("sessionQr", JSON.stringify({
+                class_id: classSelect.value,
+                session_code: data.code
+            }));
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            classSelect.disabled = true;
+            refreshTimer = setInterval(updateDashboard, 5000);
+            updateDashboard();
+        });
+
+        stopBtn.addEventListener("click", async () => {
+            await fetch("/api/stop_session", {method: "POST"});
+            clearInterval(refreshTimer);
+            sessionInfo.classList.add("hidden");
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            classSelect.disabled = false;
+            resetDashboard();
+        });
+
+        async function updateDashboard() {
+            const response = await fetch("/api/dashboard_data");
+            if (!response.ok) return;
+            const data = await response.json();
+            document.getElementById("present-count").textContent = data.present_count;
+            document.getElementById("absent-count").textContent = data.absent_count;
+            document.getElementById("total-count").textContent = data.total_count;
+            rosterList.innerHTML = "";
+            data.full_roster.forEach(student => {
+                const li = document.createElement("li");
+                li.textContent = `${student.name} (${student.id})`;
+                if (data.present_ids.includes(student.id)) li.classList.add("present");
+                li.addEventListener("click", () => markStudent(student.id));
+                rosterList.appendChild(li);
+            });
+        }
+
+        async function markStudent(studentId) {
+            await fetch("/api/mark_manual", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({student_id: studentId})
+            });
+            updateDashboard();
+        }
+
+        function resetDashboard() {
+            document.getElementById("present-count").textContent = "0";
+            document.getElementById("absent-count").textContent = "0";
+            document.getElementById("total-count").textContent = "0";
+            rosterList.innerHTML = "<li>Select a class and start a session.</li>";
+        }
+
+        document.getElementById("classForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            const response = await fetch("/api/classes", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({name: document.getElementById("className").value.trim()})
+            });
+            const data = await response.json();
+            document.getElementById("classNotice").textContent =
+                response.ok ? `Added ${data.name} (Class ${data.id}).` : data.error;
+            if (response.ok) {
+                document.getElementById("classQrPreview").classList.remove("hidden");
+                document.getElementById("classQrTitle").textContent =
+                    `${data.name} - Class ${data.id}`;
+                drawQr("newClassQr", `CLASS:${data.id}`);
+
+                const option = document.createElement("option");
+                option.value = data.id;
+                option.textContent = `${data.name} (Class ${data.id})`;
+                classSelect.appendChild(option);
+
+                document.querySelectorAll("#singleCourseChecks, .course-checks").forEach(container => {
+                    const label = document.createElement("label");
+                    const input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.value = data.id;
+                    input.name = container.id === "singleCourseChecks" ? "single_class_ids" : "bulk_class_ids";
+                    label.appendChild(input);
+                    label.appendChild(document.createTextNode(` ${data.name}`));
+                    container.appendChild(label);
+                });
+                document.getElementById("className").value = "";
+            }
+        });
+
+        document.getElementById("studentForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const classIds = [...document.querySelectorAll("#singleCourseChecks input:checked")]
+                .map(input => input.value);
+            const response = await fetch("/api/students", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    student_id: form.get("student_id"),
+                    name: form.get("name"),
+                    class_ids: classIds
+                })
+            });
+            const data = await response.json();
+            document.getElementById("studentNotice").textContent =
+                response.ok ? "Student saved and enrolled." : data.error;
+            if (response.ok) window.location.reload();
+        });
+
+        document.getElementById("bulkForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            const classIds = [...document.querySelectorAll('input[name="bulk_class_ids"]:checked')]
+                .map(input => input.value);
+            const response = await fetch("/api/students/bulk", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    lines: document.getElementById("bulkLines").value,
+                    class_ids: classIds
+                })
+            });
+            const data = await response.json();
+            document.getElementById("bulkNotice").textContent =
+                response.ok
+                    ? `Added ${data.created}; updated ${data.updated}.${data.errors.length ? " Errors: " + data.errors.join("; ") : ""}`
+                    : data.error;
+            if (response.ok) window.location.reload();
+        });
+    </script>
+</body>
+</html>
