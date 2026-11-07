@@ -1,0 +1,22 @@
+{
+  "name": "General Astronomy -1-",
+  "nameAr": "-1- فلك عام",
+  "courseCode": "ASTR 201",
+  "hours": 4,
+  "sections": [
+    {
+      "crn": "10522",
+      "section": "SD",
+      "lecture": {
+        "days": ["Sun", "Tue", "Thu"],
+        "time": "9:00 AM - 9:50 AM",
+        "instructor": "Saleh Abdullah Al-Yami (P)"
+      },
+      "lab": {
+        "days": ["Sun"],
+        "time": "3:00 PM - 5:50 PM",
+        "instructor": "TBA"
+      }
+    }
+  ]
+}

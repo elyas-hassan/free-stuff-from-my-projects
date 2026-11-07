@@ -1,0 +1,160 @@
+
+body.light-theme {
+--bg-main: #ffffff;
+--bg-alt: #f8fafc;
+--border-color: #e2e8f0;
+--text-main: #1e293b;
+--text-muted: #64748b;
+--text-inverted: #ffffff;
+--primary: #3b82f6;
+--primary-hover: #2563eb;
+--input-bg: #f1f5f9;
+--input-border: #cbd5e1;
+--shadow-color: rgba(0, 0, 0, 0.1);
+--grid-line-color: #e2e8f0;
+}
+body.light-theme {
+font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background-color: #f1f5f9;
+color: var(--text-main);
+}
+.light-theme .tab-bar {
+background: var(--bg-alt);
+border-bottom: 1px solid var(--border-color);
+box-shadow: 0 2px 4px var(--shadow-color);
+}
+.light-theme .tab {
+color: var(--text-muted);
+}
+.light-theme .tab.active {
+background: var(--primary);
+color: var(--text-inverted);
+box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+.light-theme .course-selector {
+background: var(--bg-main);
+border: 1px solid var(--border-color);
+box-shadow: 0 4px 12px var(--shadow-color);
+}
+.light-theme .selector-group label {
+color: var(--text-main);
+}
+.light-theme .dropdown-toggle {
+background: var(--input-bg);
+border: 1px solid var(--input-border);
+color: var(--text-main);
+}
+.light-theme .dropdown-toggle:hover {
+border-color: var(--primary);
+}
+.light-theme .dropdown-menu {
+background: var(--bg-main);
+border: 1px solid var(--input-border);
+box-shadow: 0 8px 25px var(--shadow-color);
+}
+.light-theme .dropdown-search {
+background: var(--bg-main);
+border-bottom: 1px solid var(--input-border);
+color: var(--text-main);
+}
+.light-theme .dropdown-option {
+color: var(--text-main);
+border-bottom: 1px solid var(--border-color);
+}
+.light-theme .dropdown-option:hover {
+background-color: var(--bg-alt);
+}
+.light-theme #sectionSelect,
+.light-theme .submit-btn {
+background: var(--input-bg);
+border: 1px solid var(--input-border);
+color: var(--text-main);
+}
+.light-theme .submit-btn,
+.light-theme #addBtn {
+background: var(--primary);
+color: var(--text-inverted);
+}
+.light-theme #addBtn:disabled {
+background: #94a3b8;
+cursor: not-allowed;
+}
+.light-theme .schedule-container {
+background: var(--bg-main);
+border: 1px solid var(--border-color);
+box-shadow: 0 4px 12px var(--shadow-color);
+}
+.light-theme .schedule-buttons button {
+color: var(--text-main);
+background: var(--input-bg);
+border: 1px solid var(--input-border);
+}
+.light-theme .schedule-buttons button:hover {
+background: #e2e8f0;
+}
+.light-theme .absolute-grid-container {
+background: var(--bg-main);
+border: 1px solid var(--border-color);
+}
+.light-theme .grid-header-row {
+background: var(--bg-alt);
+border-bottom: 2px solid var(--border-color);
+}
+.light-theme .time-header-cell,
+.light-theme .day-header-cell {
+color: var(--text-main);
+background: var(--bg-alt);
+border-right: 1px solid var(--border-color);
+}
+.light-theme .grid-content-row {
+background: var(--bg-main);
+}
+.light-theme .time-column {
+background: var(--bg-alt);
+border-right: 1px solid var(--border-color);
+}
+.light-theme .time-marker {
+color: var(--text-muted);
+border-bottom: 1px solid var(--grid-line-color);
+}
+.light-theme .day-column {
+border-right: 1px solid var(--grid-line-color);
+background: repeating-linear-gradient(
+to bottom,
+transparent,
+transparent 99px,
+var(--grid-line-color) 100px
+);
+}
+.light-theme .schedule-event {
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+border: 1px solid rgba(0,0,0,0.05);
+}
+.light-theme .event-course-code {
+color: #374151;
+text-shadow: none;
+}
+.light-theme .event-section-code,
+.light-theme .event-time {
+color: #4b5563;
+}
+.light-theme .remove-event {
+background: rgba(255,255,255,0.2);
+color: var(--text-inverted);
+}
+.light-theme .remove-event:hover {
+background: #ef4444;
+}
+.light-theme .modal-content {
+background-color: var(--bg-main);
+border: 1px solid var(--border-color);
+color: var(--text-main);
+}
+.light-theme .form-group input {
+background: var(--input-bg);
+border: 1px solid var(--input-border);
+color: var(--text-main);
+}
+.light-theme .checkbox-label {
+background: var(--input-bg);
+}
