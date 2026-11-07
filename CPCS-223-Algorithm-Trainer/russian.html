@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Russian Peasant Multiplication Trainer</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  
+  <header>
+    <h1>Russian Peasant Multiplication</h1>
+    <p class="sub">Enter n and m, then build the halving/doubling table and mark rows to sum for the final product.</p>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <span style="font-weight:500;">Enter values:</span>
+      <label>n = <input type="number" id="nInput" min="1" value="37" style="width:80px;padding:6px;border:1px solid #ccc;border-radius:6px;"></label>
+      <label>m = <input type="number" id="mInput" min="1" value="42" style="width:80px;padding:6px;border:1px solid #ccc;border-radius:6px;"></label>
+      <button class="btn-primary" id="generateBtn">Generate Table</button>
+      <button class="btn-secondary" id="randomBtn">🎲 Random</button>
+      <div class="stats" id="stats">Questions: 0 · Mistakes: 0</div>
+    </div>
+
+    <div id="questionArea"></div>
+    <p style="margin-top:18px;"><a class="btn-secondary" href="index.html">← Back</a></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = { n:0, m:0, rows:[], asked:0, mistakes:0 };
+
+  function buildRows(n,m){
+    const rows = [];
+    let a = n, b = m;
+    while(a >= 1){
+      rows.push({a, b, include: false});
+      a = Math.floor(a/2);
+      b = b*2;
+    }
+    return rows;
+  }
+
+  function render(){
+    const area = document.getElementById('questionArea');
+    area.innerHTML = '';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'target-line';
+    hdr.innerHTML = '<b>n = '+state.n+'</b>  ·  <b>m = '+state.m+'</b>';
+    area.appendChild(hdr);
+
+    const table = document.createElement('table');
+    table.className = 'trace-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>n</th><th>m</th><th>include?</th><th>contribution</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+
+    state.rows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      // prefill only the first row's n/m to give a starting point; leave others blank for practice
+      const nValAttr = i === 0 ? (' value="' + r.a + '"') : '';
+      const mValAttr = i === 0 ? (' value="' + r.b + '"') : '';
+      tr.innerHTML =
+        '<td><input type="number" class="n-input" data-i="'+i+'" placeholder="?"' + nValAttr + '></td>' +
+        '<td><input type="number" class="m-input" data-i="'+i+'" placeholder="?"' + mValAttr + '></td>' +
+        '<td><input type="checkbox" data-i="'+i+'"></td>' +
+        '<td class="contrib"></td>';
+      tbody.appendChild(tr);
+    });
+
+    area.appendChild(table);
+
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
+    const checkBtn = document.createElement('button');
+    checkBtn.className = 'btn-primary';
+    checkBtn.textContent = 'Check';
+    const revealBtn = document.createElement('button');
+    revealBtn.className = 'btn-secondary';
+    revealBtn.textContent = 'Reveal answer';
+    const fb = document.createElement('span');
+    fb.className = 'feedback';
+    actions.appendChild(checkBtn);
+    actions.appendChild(revealBtn);
+    actions.appendChild(fb);
+    area.appendChild(actions);
+
+    // --- Check: validate the table ---
+    checkBtn.addEventListener('click', function(){
+      // Read all inputs from the table
+      const nInputs = tbody.querySelectorAll('.n-input');
+      const mInputs = tbody.querySelectorAll('.m-input');
+      const cbs = tbody.querySelectorAll('input[type=checkbox]');
+      
+      // Build the rows from user input
+      const userRows = [];
+      let valid = true;
+      nInputs.forEach((inp, idx) => {
+        const nVal = parseInt(inp.value, 10);
+        const mVal = parseInt(mInputs[idx].value, 10);
+        if (isNaN(nVal) || nVal < 1 || isNaN(mVal) || mVal < 1) {
+          valid = false;
+          fb.className = 'feedback show bad';
+          fb.textContent = '✗ Please enter positive numbers in all cells';
+          return;
+        }
+        userRows.push({
+          a: nVal,
+          b: mVal,
+          include: cbs[idx].checked
+        });
+      });
+
+      if (!valid) return;
+
+      // Check if the n column follows the halving rule: next row equals floor(prev / 2)
+      let halvingValid = true;
+      for (let i = 0; i < userRows.length - 1; i++) {
+        if (Math.floor(userRows[i].a / 2) !== userRows[i + 1].a) {
+          halvingValid = false;
+          break;
+        }
+      }
+
+      if (!halvingValid) {
+        fb.className = 'feedback show bad';
+        fb.textContent = '✗ The n column must follow the halving rule (each next is floor(previous/2))';
+        return;
+      }
+
+      // Check if m column follows doubling rule
+      let doublingValid = true;
+      for (let i = 0; i < userRows.length - 1; i++) {
+        if (userRows[i].b * 2 !== userRows[i+1].b) {
+          doublingValid = false;
+          break;
+        }
+      }
+
+      if (!doublingValid) {
+        fb.className = 'feedback show bad';
+        fb.textContent = '✗ The m column must follow the doubling rule (each next is previous × 2)';
+        return;
+      }
+
+      // Verify the user's n/m columns exactly match the expected sequence from state.rows
+      for (let i = 0; i < userRows.length; i++) {
+        if (userRows[i].a !== state.rows[i].a || userRows[i].b !== state.rows[i].b) {
+          fb.className = 'feedback show bad';
+          fb.textContent = '✗ The n/m columns do not match the expected halving/doubling sequence starting from the given n and m.';
+          return;
+        }
+      }
+
+      // Calculate correct sum from the authoritative state.rows (prevent cheating via user inputs)
+      const correctSum = state.rows.reduce((s, r) => s + (r.a % 2 === 1 ? r.b : 0), 0);
+      const userSum = userRows.reduce((s, r) => s + (r.include ? r.b : 0), 0);
+
+      if (userSum === correctSum) {
+        fb.className = 'feedback show good';
+        fb.textContent = '✓ Correct! Final Answer: ' + userSum;
+        state.asked++;
+        updateStats();
+      } else {
+        state.mistakes++;
+        updateStats();
+        fb.className = 'feedback show bad';
+        fb.textContent = '✗ Incorrect — your sum '+userSum+' vs expected '+correctSum;
+      }
+    });
+
+    // --- Reveal: show correct answers ---
+    revealBtn.addEventListener('click', function(){
+      const nInputs = tbody.querySelectorAll('.n-input');
+      const mInputs = tbody.querySelectorAll('.m-input');
+      const cbs = tbody.querySelectorAll('input[type=checkbox]');
+      // Fill correct n/m values, mark correct includes and show contributions
+      state.rows.forEach((r, idx) => {
+        nInputs[idx].value = r.a;
+        mInputs[idx].value = r.b;
+        const isOdd = r.a % 2 === 1;
+        cbs[idx].checked = isOdd;
+        const contribTd = cbs[idx].parentElement.nextElementSibling;
+        contribTd.textContent = isOdd ? r.b : '';
+      });
+      fb.className = 'feedback'; fb.textContent = '';
+    });
+
+    // --- Auto-calculate contribution when checkbox changes ---
+    tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', function(){
+        const i = parseInt(this.getAttribute('data-i'), 10);
+        const mInput = tbody.querySelectorAll('.m-input')[i];
+        const mVal = parseInt(mInput.value, 10);
+        const contribTd = this.parentElement.nextElementSibling;
+        contribTd.textContent = this.checked && !isNaN(mVal) ? mVal : '';
+        // Clear feedback
+        fb.className = 'feedback';
+        fb.textContent = '';
+      });
+    });
+
+    // --- Update contribution when m changes ---
+    tbody.querySelectorAll('.m-input').forEach(inp => {
+      inp.addEventListener('input', function(){
+        const i = parseInt(this.getAttribute('data-i'), 10);
+        const cb = tbody.querySelectorAll('input[type=checkbox]')[i];
+        const contribTd = cb.parentElement.nextElementSibling;
+        const mVal = parseInt(this.value, 10);
+        contribTd.textContent = cb.checked && !isNaN(mVal) && mVal > 0 ? mVal : '';
+        fb.className = 'feedback';
+        fb.textContent = '';
+      });
+    });
+  }
+
+  function updateStats(){
+    document.getElementById('stats').textContent = 'Questions: '+state.asked+' · Mistakes: '+state.mistakes;
+  }
+
+  function generateTable(){
+    const n = parseInt(document.getElementById('nInput').value, 10);
+    const m = parseInt(document.getElementById('mInput').value, 10);
+    if (isNaN(n) || n < 1 || isNaN(m) || m < 1) {
+      alert('Please enter positive numbers for n and m');
+      return;
+    }
+    state.n = n;
+    state.m = m;
+    state.rows = buildRows(n, m);
+    render();
+  }
+
+  function randomPair(){
+    const n = Math.floor(Math.random() * 100) + 1;
+    const m = Math.floor(Math.random() * 200) + 1;
+    document.getElementById('nInput').value = n;
+    document.getElementById('mInput').value = m;
+    state.n = n;
+    state.m = m;
+    state.rows = buildRows(n, m);
+    render();
+  }
+
+  // Event listeners
+  document.getElementById('generateBtn').addEventListener('click', generateTable);
+  document.getElementById('randomBtn').addEventListener('click', randomPair);
+
+  // Enter key on inputs
+  document.getElementById('nInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') generateTable(); });
+  document.getElementById('mInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') generateTable(); });
+
+  // Initialize with default values (37, 42)
+  (function init(){
+    const defN = 37, defM = 42;
+    state.n = defN;
+    state.m = defM;
+    state.rows = buildRows(defN, defM);
+    state.asked = 0;
+    state.mistakes = 0;
+    updateStats();
+    document.getElementById('nInput').value = defN;
+    document.getElementById('mInput').value = defM;
+    render();
+  })();
+
+})();
+</script>
+</body>
+</html>
