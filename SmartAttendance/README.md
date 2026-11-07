@@ -204,8 +204,4 @@ Replace the IP address with your computer's actual IPv4 address.
 
 **Note:** Browser camera access generally requires HTTPS or localhost. Accessing the application through a local HTTP IP address may prevent camera scanning from working. For testing over the network, use an HTTPS tunneling service such as [ngrok](https://ngrok.com/) (`ngrok http 5000`).
 
----
 
-## License
-
-This project is intended for educational and learning purposes.
