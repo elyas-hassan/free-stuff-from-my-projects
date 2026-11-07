@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Sign In</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body class="centered">
+    <main>
+        <h1>Teacher Sign In</h1>
+        {% if error %}<div class="error">Incorrect password.</div>{% endif %}
+        <form method="post">
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit">Sign In</button>
+        </form>
+        <div class="divider">Student access</div>
+        <a class="button secondary" href="/">Return to Student Attendance</a>
+    </main>
+</body>
+</html>
