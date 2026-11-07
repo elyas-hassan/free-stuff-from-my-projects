@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVL Tree Insertion Trainer</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>AVL Tree Insertion Trainer</h1>
+    <p class="sub">Practice inserting nodes into an AVL tree: place each value, decide on rotations, and fill in balance factors.</p>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <select id="countSelect">
+        <option value="6">6 values</option>
+        <option value="7" selected>7 values</option>
+        <option value="8">8 values</option>
+        <option value="9">9 values</option>
+      </select>
+      <button class="btn-secondary" id="newSeqBtn">🎲 New Sequence</button>
+      <button class="btn-primary" id="startBtn" disabled>▶ Start</button>
+      <div class="stats" id="statsLine">No sequence yet</div>
+    </div>
+
+    <div class="pills" id="pillsRow"></div>
+
+    <div id="mainArea">
+      <div class="card">
+        <div class="empty-msg">Generate a sequence to begin.</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:18px;"><a class="btn-secondary" href="index.html">← Back</a></p>
+
+</div>
+
+<script>
+(function(){
+
+  function height(n){ return n ? n.height : 0; }
+  function bf(n){ return n ? height(n.left) - height(n.right) : 0; }
+  function updateHeight(n){ n.height = 1 + Math.max(height(n.left), height(n.right)); }
+
+  function rotateRight(y){
+    const x = y.left;
+    y.left = x.right;
+    x.right = y;
+    updateHeight(y);
+    updateHeight(x);
+    return x;
+  }
+  function rotateLeft(x){
+    const y = x.right;
+    x.right = y.left;
+    y.left = x;
+    updateHeight(x);
+    updateHeight(y);
+    return y;
+  }
+
+  let lastRotation = null;
+
+  function avlInsert(node, value){
+    if(!node) return { value, left:null, right:null, height:1 };
+    if(value < node.value) node.left = avlInsert(node.left, value);
+    else node.right = avlInsert(node.right, value);
+    updateHeight(node);
+    const balance = bf(node);
+    if(balance > 1 && value < node.left.value){
+      if(!lastRotation) lastRotation = 'LL';
+      return rotateRight(node);
+    }
+    if(balance < -1 && value > node.right.value){
+      if(!lastRotation) lastRotation = 'RR';
+      return rotateLeft(node);
+    }
+    if(balance > 1 && value > node.left.value){
+      if(!lastRotation) lastRotation = 'LR';
+      node.left = rotateLeft(node.left);
+      return rotateRight(node);
+    }
+    if(balance < -1 && value < node.right.value){
+      if(!lastRotation) lastRotation = 'RL';
+      node.right = rotateRight(node.right);
+      return rotateLeft(node);
+    }
+    return node;
+  }
+
+  function cloneTree(node){
+    if(!node) return null;
+    return { value: node.value, height: node.height, left: cloneTree(node.left), right: cloneTree(node.right) };
+  }
+
+  function findBSTPlacement(root, value){
+    if(!root) return { parent: null, side: 'ROOT' };
+    let cur = root;
+    while(true){
+      if(value < cur.value){
+        if(!cur.left) return { parent: cur.value, side: 'L' };
+        cur = cur.left;
+      } else {
+        if(!cur.right) return { parent: cur.value, side: 'R' };
+        cur = cur.right;
+      }
+    }
+  }
+
+  function collectBFs(node, map){
+    if(!node) return;
+    map[node.value] = bf(node);
+    collectBFs(node.left, map);
+    collectBFs(node.right, map);
+  }
+
+  function simulateInsert(root, value){
+    lastRotation = null;
+    const newRoot = avlInsert(cloneTree(root), value);
+    return { newRoot, rotation: lastRotation || 'NONE' };
+  }
+
+  function allValues(node, out){
+    if(!node) return out;
+    allValues(node.left, out);
+    out.push(node.value);
+    allValues(node.right, out);
+    return out;
+  }
+
+  
+
+  const H_SPACING = 64;
+  const V_SPACING = 78;
+  const TOP_PAD = 36;
+  const SIDE_PAD = 36;
+
+  function computeLayout(root){
+    const pos = {};
+    let nextLeaf = 0;
+
+    function place(node, depth){
+      if(!node) return null;
+
+      if(!node.left && !node.right){
+        const x = nextLeaf++;
+        pos[node.value] = { x, depth };
+        return x;
+      }
+
+      const leftX = place(node.left, depth + 1);
+      const rightX = place(node.right, depth + 1);
+      const x = leftX !== null && rightX !== null
+        ? (leftX + rightX) / 2
+        : (leftX !== null ? leftX : rightX);
+      pos[node.value] = { x, depth };
+      return x;
+    }
+
+    place(root, 0);
+    return { pos, count: Math.max(1, nextLeaf) };
+  }
+
+  function flattenWithParent(node, parentVal, out){
+    if(!node) return out;
+    out.push({ value: node.value, parent: parentVal });
+    flattenWithParent(node.left, node.value, out);
+    flattenWithParent(node.right, node.value, out);
+    return out;
+  }
+
+  function renderTree(container, root, options){
+    options = options || {};
+    container.innerHTML = '';
+    if(!root){
+      const m = document.createElement('div');
+      m.className = 'empty-msg';
+      m.textContent = 'Empty tree — the first value becomes the root.';
+      container.appendChild(m);
+      return { inputs: {} };
+    }
+
+    const { pos, count } = computeLayout(root);
+    const width = Math.max(count * H_SPACING + SIDE_PAD * 2, 200);
+    const maxDepth = Math.max(...Object.values(pos).map(p => p.depth));
+    const heightPx = maxDepth * V_SPACING + TOP_PAD * 2;
+
+    const area = document.createElement('div');
+    area.className = 'tree-area';
+    area.style.width = '100%';
+
+    const canvas = document.createElement('div');
+    canvas.className = 'canvas';
+    canvas.style.width = width + 'px';
+    canvas.style.height = heightPx + 'px';
+    canvas.style.margin = '0 auto';
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', heightPx);
+    svg.style.position = 'absolute';
+    svg.style.left = '0';
+    svg.style.top = '0';
+
+    function coords(val){
+      const p = pos[val];
+      return { x: SIDE_PAD + p.x * H_SPACING, y: TOP_PAD + p.depth * V_SPACING };
+    }
+
+    const items = flattenWithParent(root, null, []);
+
+    items.forEach(it => {
+      if(it.parent !== null){
+        const c1 = coords(it.parent);
+        const c2 = coords(it.value);
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', c1.x);
+        line.setAttribute('y1', c1.y);
+        line.setAttribute('x2', c2.x);
+        line.setAttribute('y2', c2.y);
+        line.setAttribute('stroke', '#cbd2dc');
+        line.setAttribute('stroke-width', '2');
+        svg.appendChild(line);
+      }
+    });
+
+    canvas.appendChild(svg);
+
+    const inputs = {};
+
+    items.forEach(it => {
+      const c = coords(it.value);
+      const node = document.createElement('div');
+      node.className = 'node';
+      node.style.left = c.x + 'px';
+      node.style.top = c.y + 'px';
+      node.textContent = it.value;
+      canvas.appendChild(node);
+
+      if(options.editable){
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.className = 'bf-input';
+        inp.style.left = c.x + 'px';
+        inp.style.top = (c.y + 34) + 'px';
+        inp.setAttribute('aria-label', 'balance factor for ' + it.value);
+        canvas.appendChild(inp);
+        inputs[it.value] = inp;
+      } else if(options.bfMap && options.bfMap[it.value] !== undefined){
+        const tag = document.createElement('div');
+        tag.className = 'bf-tag';
+        tag.style.left = c.x + 'px';
+        tag.style.top = (c.y + 30) + 'px';
+        tag.textContent = 'bf ' + options.bfMap[it.value];
+        canvas.appendChild(tag);
+      }
+    });
+
+    area.appendChild(canvas);
+    container.appendChild(area);
+    return { inputs };
+  }
+
+
+  const state = {
+    sequence: [],
+    index: 0,
+    confirmedTree: null,
+    confirmedBFs: {},
+    pending: null,
+    stage: 'idle',
+    placeCorrect: false,
+    mistakes: 0,
+    completedCount: 0
+  };
+
+  function genSequence(count){
+    const vals = new Set();
+    while(vals.size < count){
+      vals.add(1 + Math.floor(Math.random() * 99));
+    }
+    return Array.from(vals);
+  }
+
+  function resetForNewSequence(){
+    const count = parseInt(document.getElementById('countSelect').value, 10);
+    state.sequence = genSequence(count);
+    state.index = 0;
+    state.confirmedTree = null;
+    state.confirmedBFs = {};
+    state.pending = null;
+    state.stage = 'idle';
+    state.mistakes = 0;
+    state.completedCount = 0;
+    document.getElementById('startBtn').disabled = false;
+    renderPills();
+    renderStats();
+    renderMain();
+  }
+
+  function startSequence(){
+    state.stage = 'place';
+    prepareStepData();
+    document.getElementById('startBtn').disabled = true;
+    renderPills();
+    renderMain();
+  }
+
+  function prepareStepData(){
+    const value = state.sequence[state.index];
+    const correctPlacement = findBSTPlacement(state.confirmedTree, value);
+    const sim = simulateInsert(state.confirmedTree, value);
+    const correctBFs = {};
+    collectBFs(sim.newRoot, correctBFs);
+    state.pending = { value, correctPlacement, correctRotation: sim.rotation, resultTree: sim.newRoot, correctBFs };
+    state.placeCorrect = false;
+  }
+
+  function renderStats(){
+    const el = document.getElementById('statsLine');
+    if(state.sequence.length === 0){ el.textContent = 'No sequence yet'; return; }
+    el.textContent = 'Inserted ' + state.completedCount + '/' + state.sequence.length + '  ·  Mistakes this round: ' + state.mistakes;
+  }
+
+  function renderPills(){
+    const row = document.getElementById('pillsRow');
+    row.innerHTML = '';
+    state.sequence.forEach((v, i) => {
+      const span = document.createElement('span');
+      span.className = 'pill' + (i < state.index ? ' done' : (i === state.index && state.stage !== 'idle' ? ' current' : ''));
+      span.textContent = v;
+      row.appendChild(span);
+    });
+  }
+
+  function fieldRow(labelText, selectEl){
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    wrap.appendChild(label);
+    wrap.appendChild(selectEl);
+    return wrap;
+  }
+
+  function renderMain(){
+    const main = document.getElementById('mainArea');
+    main.innerHTML = '';
+
+    if(state.stage === 'idle'){
+      const card = document.createElement('div'); card.className = 'card';
+      const msg = document.createElement('div'); msg.className = 'empty-msg';
+      msg.textContent = state.sequence.length ? 'Sequence ready. Click Start to begin inserting ' + state.sequence[0] + '.' : 'Generate a sequence to begin.';
+      card.appendChild(msg); main.appendChild(card); return;
+    }
+
+    if(state.stage === 'complete'){
+      const card = document.createElement('div'); card.className = 'card complete-box';
+      card.innerHTML = '<div class="big">🎉 Sequence complete!</div>' + '<p>You inserted all ' + state.sequence.length + ' values. Mistakes this round: ' + state.mistakes + '.</p>';
+      const btn = document.createElement('button'); btn.className = 'btn-primary'; btn.textContent = '🎲 New Sequence'; btn.onclick = resetForNewSequence; card.appendChild(btn); main.appendChild(card); return;
+    }
+
+    const card = document.createElement('div'); card.className = 'card';
+    const h2 = document.createElement('h2'); h2.textContent = 'Step ' + (state.index + 1) + ' of ' + state.sequence.length; card.appendChild(h2);
+    const target = document.createElement('div'); target.className = 'insert-target'; target.innerHTML = 'Insert value <b>' + state.pending.value + '</b> into the current tree.'; card.appendChild(target);
+
+    const treeContainer = document.createElement('div'); card.appendChild(treeContainer);
+
+    const section1 = document.createElement('div'); section1.id = 'section1';
+    renderTree(treeContainer, state.confirmedTree, { bfMap: state.confirmedBFs });
+
+    const nodeValues = allValues(state.confirmedTree, []).sort((a,b)=>a-b);
+    const parentSelect = document.createElement('select');
+    if(nodeValues.length === 0){ const opt = document.createElement('option'); opt.value = 'ROOT'; opt.textContent = '— tree is empty (becomes root) —'; parentSelect.appendChild(opt); parentSelect.disabled = true; }
+    else { nodeValues.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; parentSelect.appendChild(opt); }); }
+
+    const sideSelect = document.createElement('select'); ['L','R'].forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s === 'L' ? 'Left child' : 'Right child'; sideSelect.appendChild(opt); }); if(nodeValues.length === 0) sideSelect.disabled = true;
+
+    const rotSelect = document.createElement('select'); [['NONE','No rotation needed'],['LL','LL — Right rotation'],['RR','RR — Left rotation'],['LR','LR — Left-right rotation'],['RL','RL — Right-left rotation']].forEach(([val,label]) => { const opt = document.createElement('option'); opt.value = val; opt.textContent = label; rotSelect.appendChild(opt); });
+
+    const row1 = document.createElement('div'); row1.className = 'field-row'; row1.appendChild(fieldRow('Attaches under', parentSelect)); row1.appendChild(fieldRow('Side', sideSelect)); row1.appendChild(fieldRow('Rotation', rotSelect)); section1.appendChild(row1);
+
+    const actions1 = document.createElement('div'); actions1.className = 'row-actions'; const checkBtn1 = document.createElement('button'); checkBtn1.className = 'btn-primary'; checkBtn1.textContent = 'Check placement'; const fb1 = document.createElement('span'); fb1.className = 'feedback'; actions1.appendChild(checkBtn1); actions1.appendChild(fb1); section1.appendChild(actions1);
+
+    card.appendChild(section1); card.appendChild(document.createElement('hr')).className = 'divider';
+
+    const section2 = document.createElement('div'); section2.id = 'section2'; if(!state.placeCorrect) section2.classList.add('section-locked');
+    const h2b = document.createElement('h2'); h2b.textContent = 'Balance factors'; section2.appendChild(h2b);
+    const hint2 = document.createElement('div'); hint2.className = 'hint'; section2.appendChild(hint2);
+    hint2.textContent = state.placeCorrect ? 'Here is the resulting tree shape. Enter the balance factor (height(left) − height(right)) for every node.' : 'Get the placement correct first to reveal the resulting tree.';
+
+    const bfTreeContainer = document.createElement('div'); section2.appendChild(bfTreeContainer);
+    let bfInputs = {};
+    if(state.placeCorrect){ const res = renderTree(bfTreeContainer, state.pending.resultTree, { editable: true }); bfInputs = res.inputs; }
+
+    const actions2 = document.createElement('div'); actions2.className = 'row-actions'; const checkBtn2 = document.createElement('button'); checkBtn2.className = 'btn-primary'; checkBtn2.textContent = 'Check balance factors'; checkBtn2.disabled = !state.placeCorrect; const fb2 = document.createElement('span'); fb2.className = 'feedback'; const nextBtn = document.createElement('button'); nextBtn.className = 'btn-secondary'; nextBtn.textContent = 'Next →'; nextBtn.style.display = 'none'; actions2.appendChild(checkBtn2); actions2.appendChild(fb2); actions2.appendChild(nextBtn); section2.appendChild(actions2);
+
+    card.appendChild(section2); main.appendChild(card);
+
+    checkBtn1.onclick = function(){
+      const chosenParent = nodeValues.length === 0 ? 'ROOT' : parentSelect.value;
+      const chosenSide = nodeValues.length === 0 ? 'ROOT' : sideSelect.value;
+      const chosenRot = rotSelect.value;
+
+      const cp = state.pending.correctPlacement;
+      const correctParentStr = cp.side === 'ROOT' ? 'ROOT' : String(cp.parent);
+      const placementOk = (cp.side === 'ROOT') ? (chosenParent === 'ROOT') : (String(chosenParent) === correctParentStr && chosenSide === cp.side);
+      const rotationOk = chosenRot === state.pending.correctRotation;
+
+      if(placementOk && rotationOk){
+        fb1.className = 'feedback show good'; fb1.textContent = '✓ Correct!'; state.placeCorrect = true; parentSelect.disabled = true; sideSelect.disabled = true; rotSelect.disabled = true; checkBtn1.disabled = true; renderMain();
+      } else {
+        state.mistakes++; renderStats(); fb1.className = 'feedback show bad'; let msg = '✗ Not quite — '; const parts = []; if(!placementOk) parts.push('check where the value attaches'); if(!rotationOk) parts.push('check whether a rotation is needed'); fb1.textContent = msg + parts.join(' and ') + '.';
+      }
+    };
+
+    checkBtn2.onclick = function(){
+      let allOk = true;
+      Object.keys(bfInputs).forEach(val => {
+        const inp = bfInputs[val];
+        const entered = parseInt(inp.value, 10);
+        const correct = state.pending.correctBFs[val];
+        if(inp.value.trim() !== '' && entered === correct){ inp.classList.remove('incorrect'); inp.classList.add('correct'); }
+        else { inp.classList.remove('correct'); inp.classList.add('incorrect'); allOk = false; }
+      });
+
+      if(allOk){ fb2.className = 'feedback show good'; fb2.textContent = '✓ All balance factors correct!'; checkBtn2.disabled = true; Object.values(bfInputs).forEach(inp => inp.disabled = true); nextBtn.style.display = 'inline-block'; }
+      else { state.mistakes++; renderStats(); fb2.className = 'feedback show bad'; fb2.textContent = '✗ Some values are off — fix the red ones and check again.'; }
+    };
+
+    nextBtn.onclick = function(){ state.confirmedTree = state.pending.resultTree; state.confirmedBFs = state.pending.correctBFs; state.completedCount++; state.index++; renderStats(); if(state.index >= state.sequence.length){ state.stage = 'complete'; } else { prepareStepData(); } renderPills(); renderMain(); };
+  }
+
+  document.getElementById('newSeqBtn').addEventListener('click', resetForNewSequence);
+  document.getElementById('startBtn').addEventListener('click', startSequence);
+
+})();
+</script>
+</body>
+</html>
